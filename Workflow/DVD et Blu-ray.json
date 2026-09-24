@@ -1,0 +1,1065 @@
+{
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": [],
+  "name": "Blu-ray.com - DVD et Blu-ray",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://YOUR_N8N_HOST.example.invalid/",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -5328,
+        2112
+      ],
+      "id": "9dbca663-d6c9-5439-8548-6984942eb7ef",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4a1cf3d8-1821-5694-aec3-54e02e71b37f",
+              "name": "jour_de_la_semaine",
+              "value": "={{ $json.jour_de_la_semaine }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5776,
+        2192
+      ],
+      "id": "59386ce3-0119-5c08-bd47-87fb066d2b65",
+      "name": "Configuration Globale"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dfe26474-e182-5972-9207-d7a85fa59c45",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -5104,
+        2112
+      ],
+      "id": "fca3513e-dd3c-53fa-86e4-f5a3ac064bcd",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "command": "=pkill ngrok; sleep 2; nohup ngrok http 5678 > /dev/null 2>&1 &"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -4880,
+        2224
+      ],
+      "id": "5f393bd6-c87e-5fd4-86e9-f0bb9d344795",
+      "name": "Restauration Tunnel1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4688,
+        2368
+      ],
+      "id": "66119beb-c5f1-571b-b9b8-ae02c517aa7a",
+      "name": "Wait1",
+      "webhookId": "f602c9be-aefa-533c-803c-81209f47b0dd"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -5552,
+        2192
+      ],
+      "id": "ec1dcc27-385b-5c69-a245-f94456e7caa7",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "E",
+        "outputFieldName": "jour_de_la_semaine",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -6000,
+        2192
+      ],
+      "id": "31b17fb0-3326-5c4f-b055-5bec4222f9df",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -6224,
+        2192
+      ],
+      "id": "b96addd7-f51f-500d-a6e3-aae448dabd46",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://browserless:3000/function",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "context",
+              "value": "={{ {\n  userId: \"YOUR_BLURAY_USER_ID\",\n  cookies: $('Edit Fields1').first().json.cookie_dvd\n} }}"
+            },
+            {
+              "name": "code",
+              "value": "export default async function ({ page, context = {} }) {   const origin = 'https://www.blu-ray.com';   const userId = String(context.userId || 'YOUR_BLURAY_USER_ID');    let cookies = context.cookies || [];    if (typeof cookies === 'string') {     try {       cookies = JSON.parse(cookies);     } catch {       throw new Error(         'Invalid cookie JSON in Edit Fields: cookie_dvd. Paste the complete JSON array.'       );     }   }    if (!Array.isArray(cookies)) {     throw new Error('Cookies must be a JSON array.');   }    const validCookies = cookies     .filter(cookie =>       cookie.name &&       /(^|\\.)blu-ray\\.com$/i.test(         cookie.domain || 'www.blu-ray.com'       )     )     .map(cookie => ({       name: cookie.name,       value: String(cookie.value ?? ''),       domain: cookie.domain || '.blu-ray.com',       path: cookie.path || '/',       secure: cookie.secure !== false,       httpOnly: Boolean(cookie.httpOnly),     }));    if (validCookies.length) {     await page.setCookie(...validCookies);   }    await page.setViewport({     width: 1280,     height: 900,   });    await page.setExtraHTTPHeaders({     'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',   });    async function visit(url, selector) {     await new Promise(resolve => setTimeout(resolve, 500));      const response = await page.goto(url, {       waitUntil: 'domcontentloaded',       timeout: 60000,     });      if (!response || response.status() >= 400) {       throw new Error('Page unavailable: ' + url);     }      await page.waitForSelector(selector, {       timeout: 20000,     });   }    await visit(     origin + '/community/userstats.php?u=' + userId,     '.cloud'   );    const stats = await page.evaluate(() => {     const clean = value =>       String(value || '').replace(/\\s+/g, ' ').trim();      const tiles = {};      for (const card of document.querySelectorAll('.cloud')) {       const count = card.querySelector('b');       const label = card.querySelector('div');        if (count && label) {         tiles[clean(label.textContent)] = Number(           count.textContent.replace(/[^0-9]/g, '')         );       }     }      const link = [       ...document.querySelectorAll('a[href*=\"picture=\"]'),     ].find(a => clean(a.textContent) === 'TV series');      const text =       link?.closest('h2')?.parentElement?.textContent || '';      const series = text.match(       /([\\d,\\s]+)\\s+of\\s+[\\d,]+/i     );      if (       !['DVD', 'Blu-ray', 'Films'].every(key =>         Number.isInteger(tiles[key])       ) ||       !series     ) {       throw new Error(         'Statistics could not be read. Check the session and page structure.'       );     }      return {       DVD: tiles.DVD,       'Blu-ray': tiles['Blu-ray'],       Films: tiles.Films,       Series: Number(         series[1].replace(/[^0-9]/g, '')       ),     };   });    const releases = new Map();    for (const categoryId of [7, 21]) {     for (const action of ['owned', 'wishlist']) {       const base =         origin +         '/community/collection.php?u=' + userId +         '&categoryid=' + categoryId +         '&action=' + action;        const queue = [base];       const visited = new Set();        while (queue.length) {         const url = queue.shift();          if (visited.has(url)) continue;          if (visited.size >= 500) {           throw new Error(             'Pagination limit reached: ' + base           );         }          visited.add(url);          await visit(url, 'h2.oswaldcollection');          const result = await page.evaluate(           ({ categoryId, action }) => {             const heading = document.querySelector(               'h2.oswaldcollection'             );              const form = document.querySelector(               '#selectionform'             );              if (               !form &&               !/\\b0\\s+SKUs?\\b/i.test(                 heading?.textContent || ''               )             ) {               throw new Error(                 'Collection entries could not be read.'               );             }              const section = form               ?.querySelector('h2')               ?.textContent.trim()               .toLowerCase();              if (               section &&               ['owned', 'wishlist'].includes(section) &&               section !== action             ) {               throw new Error(                 'The requested collection view was not loaded.'               );             }              const rows = [               ...(form?.querySelectorAll(                 'a.hoverlink[data-productid][href]'               ) || []),             ]               .filter(a =>                 Number(a.dataset.categoryid) === categoryId               )               .map(a => ({                 id: a.dataset.productid,                 url: a.href,                 title:                   a.title ||                   a.querySelector('img')?.alt ||                   '',               }));              const pages = [               ...document.querySelectorAll(                 'a[href*=\"page=\"]'               ),             ].map(a => a.href);              return { rows, pages };           },           { categoryId, action }         );          for (const row of result.rows) {           const link = new URL(row.url);            if (             link.origin !== origin ||             !/^\\/(movies|dvd)\\/[^/]+\\/\\d+\\/?$/.test(               link.pathname             )           ) {             throw new Error(               'Unexpected release URL: ' + row.url             );           }            const key =             categoryId + ':' + row.id + ':' + action;            releases.set(key, {             ...row,             categoryId,             action,           });         }          for (const href of result.pages) {           const link = new URL(href, base);            if (             link.origin !== origin ||             link.pathname !== '/community/collection.php'           ) continue;            if (link.searchParams.has('letter')) continue;            const expected = {             u: userId,             categoryid: String(categoryId),             action,           };            const changesView = Object.entries(expected).some(             ([key, value]) =>               link.searchParams.has(key) &&               link.searchParams.get(key) !== value           );            if (changesView) continue;            const number = link.searchParams.get('page');            if (/^\\d+$/.test(number || '')) {             const next = base + '&page=' + number;              if (               !visited.has(next) &&               !queue.includes(next)             ) {               queue.push(next);             }           }         }       }     }   }    const collection = [];   const cache = new Map();    for (const release of releases.values()) {     if (!cache.has(release.url)) {       await visit(release.url, 'h1');        const details = await page.evaluate(         ({ categoryId }) => {           const clean = value =>             String(value || '').replace(/\\s+/g, ' ').trim();            const headings = [             ...document.querySelectorAll('.subheading'),           ];            function sectionText(heading) {             let text = '';              for (               let node = heading?.nextSibling;               node;               node = node.nextSibling             ) {               if (                 node.nodeType === 1 &&                 node.matches('.subheading')               ) break;                text += ' ' + (node.textContent || '');             }              return clean(text);           }            const title = clean(             document.querySelector('h1')?.textContent           );            const metadata = clean(             document.querySelector('h1')               ?.closest('table')               ?.nextElementSibling               ?.textContent           );            const infoHeading = document.querySelector(             '#movie_info h3'           );            let infoType = '';            for (             let node = infoHeading?.nextSibling;             node;             node = node.nextSibling           ) {             if (node.nodeName === 'BR') break;             infoType += ' ' + (node.textContent || '');           }            const isTvMovie = /\\bTV (movie|film)\\b/i.test(             metadata + ' ' + infoType           );            const seriesMetadataPattern =             /\\b(seasons?|episodes?|TV (mini[- ]?)?series)\\b/i;            const seriesTitlePattern =             /\\b(seasons?\\s+\\d|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|final|complete)\\s+season|complete (original )?series|mini[- ]?series|episodes?\\s+\\d+\\s*[-–]\\s*\\d+)/i;            const isSeries = !isTvMovie && (             seriesMetadataPattern.test(metadata) ||             seriesTitlePattern.test(title)           );            if (             /\\(TV\\)/i.test(infoType) &&             !isSeries &&             !isTvMovie           ) {             throw new Error(               'Ambiguous TV type; series or TV movie: ' + title             );           }            if (!infoHeading) {             throw new Error(               'Release information not found: ' + title             );           }            const discsHeading = headings.find(             h => clean(h.textContent) === 'Discs'           );            const discs = sectionText(discsHeading);           const formats = [];            const isUhd =             /\\b4K\\b|Ultra\\s*HD|\\bUHD\\b/i.test(discs || title);            if (isUhd) {             formats.push('4K Ultra HD');           }            let remaining = discs.replace(             /(?:4K\\s*(?:Ultra\\s*HD)?|Ultra\\s*HD|UHD)(?:\\s+Blu-ray(?:\\s+Discs?)?)?/gi,             ''           );            if (/Blu-ray\\s*3D|3D\\s*Blu-ray/i.test(remaining)) {             formats.push('Blu-ray 3D');              remaining = remaining.replace(               /Blu-ray\\s*3D|3D\\s*Blu-ray/gi,               ''             );           }            if (/Blu-ray/i.test(remaining)) {             formats.push('Blu-ray');           }            if (/\\bDVD\\b/i.test(discs)) {             formats.push('DVD');           }            if (!formats.length) {             formats.push(               categoryId === 21 ? 'DVD' : 'Blu-ray'             );           }            const priceCell = document.querySelector(             '#movie_buylink, #dvd_buylink'           )?.closest('td');            const priceHeading = [             ...(priceCell?.querySelectorAll(               '.subheading'             ) || []),           ].find(             h => clean(h.textContent) === 'Price'           );            const priceText = sectionText(priceHeading);            const match = priceText.match(             /\\bNew from:\\s*(?:€|EUR)\\s*([\\d][\\d.,\\s]*)/i           );            let price = null;            if (match) {             let amount = match[1].replace(/\\s/g, '');              const separator = Math.max(               amount.lastIndexOf(','),               amount.lastIndexOf('.')             );              if (               separator >= 0 &&               amount.length - separator - 1 <= 2             ) {               amount =                 amount.slice(0, separator).replace(/[.,]/g, '') +                 '.' +                 amount.slice(separator + 1);             } else {               amount = amount.replace(/[.,]/g, '');             }              const value = Number(amount);              if (Number.isFinite(value) && value >= 0) {               price = Math.round(value * 100) / 100;             }           }            return {             Genre: isSeries ? 'série' : 'film',             Categorie: formats.join(' + '),             Prix: price,           };         },         { categoryId: release.categoryId }       );        cache.set(release.url, details);     }      const title = release.title       .replace(         /\\s+\\(\\d{4}(?:\\s*[-–]\\s*\\d{4})?\\)\\s*$/,         ''       )       .trim();      if (!title) {       throw new Error(         'Missing title: ' + release.url       );     }      const details = cache.get(release.url);      collection.push({       Titre: title,       Genre: details.Genre,       Statut:         release.action === 'owned'           ? 'dans ma bibliothèque'           : 'liste de souhait',       Categorie: details.Categorie,       Prix: details.Prix,     });   }    return {     data: {       statistiques: stats,       collection,     },     type: 'application/json',   }; }"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 1200000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -2144,
+        448
+      ],
+      "id": "67cabc6f-ebd5-5125-8fba-80bbb2829197",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "N8N",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Genre": "Série",
+            "Non possédé et Lu": "={{ $json.statistiques_site.Series }}",
+            "Dédicace": "={{ $json.series }}"
+          },
+          "matchingColumns": [
+            "Genre"
+          ],
+          "schema": [
+            {
+              "id": "Genre",
+              "displayName": "Genre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Liste de souhait",
+              "displayName": "Liste de souhait",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "En possession (Total)",
+              "displayName": "En possession (Total)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "En possession et Lu",
+              "displayName": "En possession et Lu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Non possédé et Lu",
+              "displayName": "Non possédé et Lu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Dédicace",
+              "displayName": "Dédicace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Autre Stat",
+              "displayName": "Autre Stat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Pages",
+              "displayName": "Pages",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Poids",
+              "displayName": "Poids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Prix",
+              "displayName": "Prix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Stat",
+              "displayName": "Stat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Max",
+              "displayName": "Max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Min",
+              "displayName": "Min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Max p",
+              "displayName": "Max p",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Min p",
+              "displayName": "Min p",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Moyenne Page",
+              "displayName": "Moyenne Page",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1248,
+        352
+      ],
+      "id": "2c567861-ffae-536c-816e-f3b783176899",
+      "name": "Append or update row in sheet2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "N8N",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Genre": "Films",
+            "Non possédé et Lu": "={{ $json.statistiques_site.Films }}",
+            "Dédicace": "={{ $json.films }}"
+          },
+          "matchingColumns": [
+            "Genre"
+          ],
+          "schema": [
+            {
+              "id": "Genre",
+              "displayName": "Genre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Liste de souhait",
+              "displayName": "Liste de souhait",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "En possession (Total)",
+              "displayName": "En possession (Total)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "En possession et Lu",
+              "displayName": "En possession et Lu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Non possédé et Lu",
+              "displayName": "Non possédé et Lu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Dédicace",
+              "displayName": "Dédicace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Autre Stat",
+              "displayName": "Autre Stat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Pages",
+              "displayName": "Pages",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Poids",
+              "displayName": "Poids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Prix",
+              "displayName": "Prix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Stat",
+              "displayName": "Stat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Max",
+              "displayName": "Max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Min",
+              "displayName": "Min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Max p",
+              "displayName": "Max p",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Min p",
+              "displayName": "Min p",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Moyenne Page",
+              "displayName": "Moyenne Page",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1248,
+        544
+      ],
+      "id": "41896a53-37d7-59f1-81e5-f99b8ce9e11a",
+      "name": "Append or update row in sheet3"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "clear",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DVD_TABLE_ID",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -3040,
+        544
+      ],
+      "id": "e4b115bf-5920-5e2f-9073-1c40a5e239f9",
+      "name": "Clear a data table4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b96b2fb2-61e8-5a19-a314-fb22cef1b442",
+              "name": "cookie_dvd",
+              "value": "[]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -2816,
+        544
+      ],
+      "id": "c9cf58ff-a106-56ce-a159-151e21b98dc4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "let data = $('HTTP Request').first().json;\n\nif (typeof data.data === 'string') {\n  data = JSON.parse(data.data);\n} else if (data.data?.collection) {\n  data = data.data;\n}\n\nif (!Array.isArray(data.collection) || !data.statistiques) {\n  throw new Error('Invalid extraction result.');\n}\n\nreturn data.collection.map(row => {\n  if (\n    !row.Titre ||\n    !['film', 'série'].includes(row.Genre) ||\n    !['dans ma bibliothèque', 'liste de souhait'].includes(row.Statut) ||\n    !row.Categorie ||\n    !(\n      row.Prix === null ||\n      (\n        typeof row.Prix === 'number' &&\n        Number.isFinite(row.Prix) &&\n        row.Prix >= 0\n      )\n    )\n  ) {\n    throw new Error(\n      'Invalid collection entry: ' + (row.Titre || 'unknown')\n    );\n  }\n\n  return {\n    json: {\n      Titre: row.Titre,\n      Genre: row.Genre,\n      Statut: row.Statut,\n      Categorie: row.Categorie,\n      Prix: row.Prix,\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        448
+      ],
+      "id": "7d7f8165-17cd-5b82-bf6f-3bc00d733652",
+      "name": "Code in JavaScript19"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DVD_TABLE_ID",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {}
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Titre",
+              "displayName": "Titre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Genre",
+              "displayName": "Genre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Categorie",
+              "displayName": "Categorie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prix",
+              "displayName": "Prix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1696,
+        448
+      ],
+      "id": "9616ff4c-21fd-56c0-881e-e7c7bb923c29",
+      "name": "Upsert row(s)6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read the complete extraction from HTTP Request.\nlet data = $('HTTP Request').first().json;\n\nif (typeof data.data === 'string') {\n  data = JSON.parse(data.data);\n} else if (data.data?.collection) {\n  data = data.data;\n}\n\nif (!Array.isArray(data.collection) || !data.statistiques) {\n  throw new Error('Invalid extraction result.');\n}\n\n// Count each edition under its complete format label.\nfunction countFormats(rows) {\n  const result = {\n    DVD: 0,\n    'Blu-ray': 0,\n  };\n\n  for (const row of rows) {\n    result[row.Categorie] =\n      (result[row.Categorie] || 0) + 1;\n  }\n\n  return result;\n}\n\n// Sum known prices in cents to avoid rounding errors.\nfunction calculatePrices(rows) {\n  const known = rows.filter(row =>\n    typeof row.Prix === 'number' &&\n    Number.isFinite(row.Prix) &&\n    row.Prix >= 0\n  );\n\n  const total =\n    known.length > 0 || rows.length === 0\n      ? known.reduce(\n          (sum, row) => sum + Math.round(row.Prix * 100),\n          0\n        ) / 100\n      : null;\n\n  return {\n    total,\n    missing: rows.length - known.length,\n  };\n}\n\n// Build separate summaries for movies and series.\nfunction summarize(genre) {\n  const rows = data.collection.filter(\n    row => row.Genre === genre\n  );\n\n  const owned = rows.filter(\n    row => row.Statut === 'dans ma bibliothèque'\n  );\n\n  const wishlist = rows.filter(\n    row => row.Statut === 'liste de souhait'\n  );\n\n  const ownedPrices = calculatePrices(owned);\n  const wishlistPrices = calculatePrices(wishlist);\n\n  return {\n    possession: owned.length,\n    liste_souhait: wishlist.length,\n\n    formats_possession: countFormats(owned),\n    formats_souhait: countFormats(wishlist),\n\n    prix_total: ownedPrices.total,\n    prix_manquants: ownedPrices.missing,\n\n    prix_souhait: wishlistPrices.total,\n    prix_souhait_manquants: wishlistPrices.missing,\n  };\n}\n\n// Calculate the total price of all owned editions.\nconst ownedCollection = data.collection.filter(\n  row => row.Statut === 'dans ma bibliothèque'\n);\n\nconst totalPrices = calculatePrices(ownedCollection);\n\n// Return a single item for the following Google Sheets nodes.\nreturn [{\n  json: {\n    statistiques_site: data.statistiques,\n\n    prix_total: totalPrices.total,\n    prix_manquants: totalPrices.missing,\n\n    films: summarize('film'),\n    series: summarize('série'),\n\n    collection: data.collection,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1472,
+        448
+      ],
+      "id": "c82c40fc-2e46-514f-b794-7b5327b5efce",
+      "name": "Code in JavaScript20"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "==🚨 **ALERTE Blu-ray.com**\n\nLe workflow DVD/Blu-ray s'est arrêté pendant la vérification de la session.\n\n**Statut :** {{ ($json.data ?? $json).statut_session || \"erreur\" }}\n\n**Raison :** {{ ($json.data ?? $json).raison || ($json.data ?? $json).erreur || $json.error?.message || \"Erreur HTTP ou Browserless. Consulte le détail de l'exécution dans n8n.\" }}\n\n**Action :** {{ ($json.data ?? $json).statut_session === 'invalide' ? \"Reconnecte-toi à Blu-ray.com, récupère les nouveaux cookies puis actualise cookie_dvd dans le nœud Edit Fields.\" : \"Vérifie Blu-ray.com, Browserless et le format de cookie_dvd dans Edit Fields.\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -2144,
+        640
+      ],
+      "id": "6fc16e6d-1ea5-58b8-bd10-a2e9d8e09f03",
+      "name": "Discord4",
+      "webhookId": "ceb81308-b5d9-510c-b361-485d09035651"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://browserless:3000/function",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    code: `export default async function ({ page, context = {} }) {\n      const output = (data) => ({\n        data: {\n          date_verification: new Date().toISOString(),\n          ...data\n        },\n        type: 'application/json'\n      });\n\n      try {\n        let cookies = context.cookies || [];\n\n        if (typeof cookies === 'string') {\n          try {\n            cookies = JSON.parse(cookies);\n          } catch {\n            return output({\n              statut_session: 'erreur',\n              erreur: 'cookie_dvd contient un JSON invalide.'\n            });\n          }\n        }\n\n        if (!Array.isArray(cookies) || cookies.length === 0) {\n          return output({\n            statut_session: 'invalide',\n            raison: 'Aucun cookie Blu-ray.com fourni.'\n          });\n        }\n\n        const filteredCookies = cookies\n          .filter((cookie) => {\n            const domain = String(cookie.domain || '').toLowerCase();\n\n            return (\n              cookie.name &&\n              (\n                domain === 'blu-ray.com' ||\n                domain === '.blu-ray.com' ||\n                domain.endsWith('.blu-ray.com')\n              )\n            );\n          })\n          .map((cookie) => ({\n            name: String(cookie.name),\n            value: String(cookie.value ?? ''),\n            domain: cookie.domain || '.blu-ray.com',\n            path: cookie.path || '/',\n            secure: cookie.secure !== false,\n            httpOnly: Boolean(cookie.httpOnly)\n          }));\n\n        const cookieNames = new Set(\n          filteredCookies.map((cookie) => cookie.name)\n        );\n\n        if (\n          !cookieNames.has('bbuserid') ||\n          !cookieNames.has('bbpassword')\n        ) {\n          return output({\n            statut_session: 'invalide',\n            raison: 'Les cookies bbuserid et/ou bbpassword sont absents.'\n          });\n        }\n\n        await page.setCookie(...filteredCookies);\n\n        await page.setViewport({\n          width: 1280,\n          height: 900\n        });\n\n        await page.setExtraHTTPHeaders({\n          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'\n        });\n\n        const response = await page.goto(\n          'https://www.blu-ray.com/community/settings.php',\n          {\n            waitUntil: 'domcontentloaded',\n            timeout: 60000\n          }\n        );\n\n        if (!response) {\n          return output({\n            statut_session: 'erreur',\n            erreur: 'Aucune réponse HTTP reçue de Blu-ray.com.'\n          });\n        }\n\n        const check = await page.evaluate(() => {\n          const text = String(\n            document.body?.innerText || ''\n          )\n            .replace(/\\\\s+/g, ' ')\n            .trim();\n\n          const links = Array.from(\n            document.querySelectorAll('a[href]')\n          );\n\n          const hasLogout = links.some((a) => {\n            const label = String(a.textContent || '')\n              .trim()\n              .toLowerCase();\n\n            const href = String(\n              a.getAttribute('href') || ''\n            ).toLowerCase();\n\n            return (\n              label === 'logout' ||\n              label === 'log out' ||\n              href.includes('logout')\n            );\n          });\n\n          const notLogged =\n            /not logged in/i.test(text) ||\n            /you need to be logged in/i.test(text);\n\n          return {\n            hasLogout,\n            notLogged,\n            title: document.title || ''\n          };\n        });\n\n        if (check.notLogged) {\n          return output({\n            statut_session: 'invalide',\n            raison: 'Blu-ray.com refuse les cookies : session non connectée.',\n            http_status: response.status()\n          });\n        }\n\n        if (check.hasLogout) {\n          return output({\n            statut_session: 'valide',\n            raison: 'Session Blu-ray.com valide.',\n            http_status: response.status()\n          });\n        }\n\n        return output({\n          statut_session: 'erreur',\n          erreur: 'Impossible de confirmer la session avec certitude.',\n          http_status: response.status(),\n          titre_page: check.title\n        });\n\n      } catch (error) {\n        return output({\n          statut_session: 'erreur',\n          erreur: error instanceof Error\n            ? error.message\n            : String(error)\n        });\n      }\n    }`,\n    context: {\n      cookies: $json.cookie_dvd\n    }\n  }\n}}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -2592,
+        544
+      ],
+      "id": "f8becf00-8c2f-5e13-a856-ac57d877c7c7",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e7ab4cab-4340-5fd3-955c-3ab0b46d5507",
+              "leftValue": "={{ ($json.data ?? $json).statut_session ?? 'erreur' }}",
+              "rightValue": "valide",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "50aaf9e7-bf54-5a18-baa2-84777f291007",
+              "leftValue": "={{ !$json.error && !($json.data ?? $json).error && !($json.data ?? $json).erreur }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2368,
+        544
+      ],
+      "id": "c47b3840-0f10-5ccb-8262-097adccd13f0",
+      "name": "If11"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1008,
+        432
+      ],
+      "id": "fbab0709-6207-58dd-a535-037e18b3a8ec",
+      "name": "Merge11"
+    }
+  ],
+  "connections": {
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration Globale": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Clear a data table4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restauration Tunnel1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restauration Tunnel1": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Configuration Globale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript19",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear a data table4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript19": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)6": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript20": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append or update row in sheet3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "If11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If11": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Merge11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet3": {
+      "main": [
+        [
+          {
+            "node": "Merge11",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  }
+}
