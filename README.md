@@ -1,6 +1,6 @@
 # BluRay-Stats
 
-Statistiques DVD et Blu-ray via blu-ray.com, avec n8n.
+Statistiques de DVD et Blu-ray avec n8n pour le site **[Blu-ray.com](https://www.blu-ray.com/)** : collection de disques, supports, souhaits et prix associés à votre profil.
 
 ## Workflow
 
